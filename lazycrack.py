@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+# written by Jon Henningsson
+# http://fattigjon.se
+
+# usage: first, enable a monitor interface with airmon-ng
+# run this script with the appropriate options
+# finally, run aircrack-ng 
+
 import subprocess
 import time
 import datetime

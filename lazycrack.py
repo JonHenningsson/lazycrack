@@ -61,7 +61,7 @@ def check_user():
 def cleanup():
 	cleanup_args1 = ['killall', 'airodump-ng']
 	p1 = subprocess.Popen(cleanup_args1, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-	cleanup_args2 = ['killall', 'aireplay-ng', '&>', '/dev/null']
+	cleanup_args2 = ['killall', 'aireplay-ng']
 	p2 = subprocess.Popen(cleanup_args2, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 	f.write("-------------------------------------\n")
 	f.close()
